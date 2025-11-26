@@ -3,70 +3,118 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Abdul Hakeem - Todo App</title>
+  <title>Abdul Hakeem - Advanced Todo App</title>
   <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
   <style>
     body{font-family:'Segoe UI',sans-serif;background:#0d1117;color:#c9d1d9;margin:0;padding:20px}
-    .container{max-width:500px;margin:40px auto;background:#161b22;padding:30px;border-radius:16px;border:1px solid #30363d}
-    h1{text-align:center;color:#58a6ff}
-    input{padding:12px;font-size:16px;width:70%;border-radius:8px;border:none}
-    button{padding:12px 20px;background:#238636;color:white;border:none;border-radius:8px;cursor:pointer}
+    .container{max-width:520px;margin:30px auto;background:#161b22;padding:30px;border-radius:16px;border:1px solid #30363d;box-shadow:0 8px 32px rgba(0,0,0,0.4)}
+    h1{text-align:center;color:#58a6ff;margin:0 0 20px;font-size:28px}
+    .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+    .stats{font-size:14px;color:#8b949e}
+    input{padding:14px;font-size:16px;width:68%;border-radius:10px;border:1px solid #30363d;background:#0d1117;color:white}
+    button{padding:14px 24px;background:#238636;color:white;border:none;border-radius:10px;cursor:pointer;font-weight:bold}
     button:hover{background:#2ea043}
-    ul{list-style:none;padding:0;margin-top:20px}
-    li{background:#21262d;margin:10px 0;padding:15px;border-radius:8px;display:flex;justify-content:space-between;align-items:center}
-    .delete{background:#f85149;padding:8px 12px;border-radius:6px;cursor:pointer}
+    .filters{margin:20px 0;display:flex;gap:10px;justify-content:center}
+    .filter-btn{padding:8px 16px;border-radius:8px;background:#21262d;border:none;color:#c9d1d9;cursor:pointer}
+    .filter-btn.active{background:#1f6feb;color:white}
+    ul{list-style:none;padding:0;margin:0}
+    li{background:#21262d;margin:10px 0;padding:16px;border-radius:10px;display:flex;justify-content:space-between;align-items:center;transition:0.3s}
+    li.completed{opacity:0.6;text-decoration:line-through;background:#1a2e1a}
+    .actions button{background:none;border:none;color:#f85149;cursor:pointer;font-size:18px}
+    .clear-btn{margin-top:20px;background:#f85149;padding:12px;width:100%;border-radius:10px}
+    .clear-btn:hover{background:#da3633}
   </style>
 </head>
 <body>
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState } = React;
+    const { useState, useEffect } = React;
 
     function App() {
       const [todos, setTodos] = useState([]);
       const [input, setInput] = useState("");
+      const [filter, setFilter] = useState("all");
+
+      // Load from localStorage
+      useEffect(() => {
+        const saved = localStorage.getItem("todos");
+        if (saved) setTodos(JSON.parse(saved));
+      }, []);
+
+      // Save to localStorage
+      useEffect(() => {
+        localStorage.setItem("todos", JSON.stringify(todos));
+      }, [todos]);
 
       const addTodo = () => {
         if (input.trim()) {
-          setTodos([...todos, { id: Date.now(), text: input }]);
+          setTodos([...todos, { 
+            id: Date.now(), 
+            text: input, 
+            completed: false 
+          }]);
           setInput("");
         }
+      };
+
+      const toggleComplete = (id) => {
+        setTodos(todos.map(todo => 
+          todo.id === id ? {...todo, completed: !todo.completed} : todo
+        ));
       };
 
       const deleteTodo = (id) => {
         setTodos(todos.filter(todo => todo.id !== id));
       };
 
+      const clearCompleted = () => {
+        setTodos(todos.filter(todo => !todo.completed));
+      };
+
+      const filteredTodos = todos.filter(todo => {
+        if (filter === "active") return !todo.completed;
+        if (filter === "completed") return todo.completed;
+        return true;
+      });
+
+      const activeCount = todos.filter(t => !t.completed).length;
+
       return (
         <div className="container">
-          <h1>Abdul Hakeem Todo</h1>
+          <div className="header">
+            <h1>Abdul Hakeem Todo</h1>
+            <div className="stats">{activeCount} active task{activeCount !== 1 ? 's' : ''}</div>
+          </div>
+
           <div style={{display:'flex',gap:'10px',marginBottom:'20px'}}>
             <input 
               type="text" 
               value={input} 
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && addTodo()}
-              placeholder="Add a new task..."
+              placeholder="What needs to be done?"
             />
             <button onClick={addTodo}>Add</button>
           </div>
+
+          <div className="filters">
+            <button className={`filter-btn ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>All</button>
+            <button className={`filter-btn ${filter === 'active' ? 'active' : ''}`} onClick={() => setFilter('active')}>Active</button>
+            <button className={`filter-btn ${filter === 'completed' ? 'active' : ''}`} onClick={() => setFilter('completed')}>Completed</button>
+          </div>
+
           <ul>
-            {todos.map(todo => (
-              <li key={todo.id}>
-                {todo.text}
-                <span className="delete" onClick={() => deleteTodo(todo.id)}>✕</span>
+            {filteredTodos.map(todo => (
+              <li key={todo.id} className={todo.completed ? 'completed' : ''}>
+                <span onClick={() => toggleComplete(todo.id)} style={{cursor:'pointer',flex:1}}>
+                  {todo.text}
+                </span>
+                <button className="actions" onClick={() => deleteTodo(todo.id)}>X</button>
               </li>
             ))}
           </ul>
-          {todos.length === 0 && <p style={{textAlign:'center',opacity:0.6}}>No tasks yet. Add one!</p>}
-        </div>
-      );
-    }
 
-    ReactDOM.render(<App />, document.getElementById('root'));
-  </script>
-</body>
-</html>
+         
